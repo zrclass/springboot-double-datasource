@@ -1,0 +1,70 @@
+package org.zrclass.doublesource.common.config;
+
+/**
+ * @author zhourui 20114535
+ * @version 1.0
+ * @date 2021/3/23 20:48
+ */
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.tomcat.jdbc.pool.DataSource;
+import org.mybatis.spring.SqlSessionFactoryBean;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Configuration
+/**指定dao的位置*/
+@MapperScan(basePackages = "org.zrclass.doublesource.web.dao.mysql1" ,sqlSessionTemplateRef = "mysqlSqlSessionTemplate")
+public class MysqlSource1 {
+
+    //创建数据源
+    @Bean(name="mysqlDataSource")
+    /**指定数据源的前缀*/
+    @ConfigurationProperties(prefix = "spring.datasource.dynamic.datasource.mysql1")
+    @Primary
+    public DataSource dataSource() {
+        return new DataSource();
+    }
+
+    /**
+     * 创建SqlSessionFactory
+     */
+    @Bean(name = "mysqlSqlSessionFactory")
+    @Primary
+    public SqlSessionFactory sqlSessionFactoryBean() throws Exception {
+
+        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+
+        sqlSessionFactoryBean.setDataSource(dataSource());
+
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+        //指定mapper文件所在目录
+        sqlSessionFactoryBean.setMapperLocations(resolver.getResources("classpath:mapper/mysql1/*Mapper.xml"));
+
+        return sqlSessionFactoryBean.getObject();
+    }
+
+    /**创建事务管理器*/
+    @Bean(name = "mysqlTransactionManager")
+    @Primary
+    public PlatformTransactionManager transactionManager() {
+        return new DataSourceTransactionManager(dataSource());
+    }
+
+
+    @Bean(name = "mysqlSqlSessionTemplate")
+    @Primary
+    public SqlSessionTemplate mysqlSqlSessionTemplate(@Qualifier("mysqlSqlSessionFactory") SqlSessionFactory sqlSessionFactory){
+        return new SqlSessionTemplate(sqlSessionFactory);
+
+    }
+
+}
